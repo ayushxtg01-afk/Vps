@@ -1,13 +1,14 @@
+
 FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y openssh-server sudo
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN mkdir -p /var/run/sshd
+RUN apt-get update && apt-get install -y --no-install-recommends openssh-server \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN echo 'root:ChangeThisPassword123!' | chpasswd
-
-RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+RUN mkdir -p /run/sshd && \
+    printf '\nPermitRootLogin yes\nPasswordAuthentication yes\n' >> /etc/ssh/sshd_config
 
 EXPOSE 22
 
-CMD ["/usr/sbin/sshd", "-D"]
+CMD ["bash", "-lc", "if [ -z \"$ROOT_PASSWORD\" ]; then echo 'ROOT_PASSWORD is missing'; exit 1; fi; echo \"root:$ROOT_PASSWORD\" | chpasswd && exec /usr/sbin/sshd -D -e"]
